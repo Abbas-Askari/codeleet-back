@@ -14,7 +14,7 @@ function runCode(code, problem) {
       vm.runInNewContext(
         `
                 ${code}
-                ${problem.solutionFunction.replace(
+                ${problem.solutionFunction.replaceAll(
                   problem.functionName,
                   `${problem.functionName}_`
                 )}
@@ -128,17 +128,19 @@ function testCaseSeperately(problem, code, testCase) {
     const logs = [];
     let result = null;
     let expected = null;
+    console.log(problem.solutionFunction);
     try {
       const start = Date.now();
       vm.runInNewContext(
         `
           ${code}
-          ${problem.solutionFunction.replace(
+          ${problem.solutionFunction.replaceAll(
             problem.functionName,
             `${problem.functionName}_`
           )}
           const correct = ${problem.functionName}_(...args);
           const user = ${problem.functionName}(...args);
+          log(correct, user);
           setResult(user);
           setExpected(correct);
       `,
@@ -155,7 +157,6 @@ function testCaseSeperately(problem, code, testCase) {
         },
         { timeout: +process.env.EXECUTION_TIMEOUT }
       );
-      console.log({ logsLength: logs.length }, +process.env.MAX_LOGS);
       resolve({
         logs,
         result,
