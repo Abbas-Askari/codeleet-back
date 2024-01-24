@@ -140,7 +140,6 @@ function testCaseSeperately(problem, code, testCase) {
           )}
           const correct = ${problem.functionName}_(...args);
           const user = ${problem.functionName}(...args);
-          log(correct, user);
           setResult(user);
           setExpected(correct);
       `,
