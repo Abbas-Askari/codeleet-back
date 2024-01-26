@@ -3,6 +3,7 @@ import isEqual from "lodash.isequal";
 import Problem from "../models/problem.js";
 import Submission from "../models/submission.js";
 import "dotenv/config.js";
+import mongoose from "mongoose";
 
 function runCode(code, problem) {
   return new Promise((resolve, reject) => {
@@ -95,10 +96,39 @@ export async function createSubmission(req, res) {
     });
     await submission.save();
 
-    console.log({ failed, time, limitExceeded, logs });
-    res
-      .status(200)
-      .json({ success: !failed, logs, failed, time, limitExceeded });
+    // calculate the compatedTo object
+
+    const comparision =
+      submission.status === "Accepted"
+        ? await Submission.aggregate([
+            {
+              $match: {
+                problemId: new mongoose.Types.ObjectId(problemId),
+                status: "Accepted",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                beats: {
+                  $sum: { $cond: [{ $lte: [time, "$time"] }, 1, 0] },
+                },
+                total: { $sum: 1 },
+                time: { $avg: "$time" },
+              },
+            },
+          ]).exec()
+        : null;
+
+    console.log({ failed, time, limitExceeded, logs, comparision });
+    res.status(200).json({
+      success: !failed,
+      logs,
+      failed,
+      time,
+      limitExceeded,
+      comparision,
+    });
   } catch (error) {
     console.log({ error }, error);
     res.status(400).json({ message: error.message, stack: error.stack });
@@ -110,11 +140,53 @@ export async function getAllSubmissionsOfUser(req, res) {
     // return all submission for a problem posted by the user who is logged in
     // also return the acceptance rate of the problem and average time taken
     const { problemId } = req.params;
-    const submissions = await Submission.find({
-      problemId,
-      userId: req.user._id,
-    });
-    res.status(200).json({ submissions: submissions.map((s) => s.toJSON()) });
+    // const submissions = await Submission.find({
+    //   problemId,
+    //   userId: req.user._id,
+    // });
+    // return submissions along with the percentage of submission it beats in time
+
+    const submissions = await Submission.aggregate([
+      {
+        $match: {
+          problemId: new mongoose.Types.ObjectId(problemId),
+          userId: new mongoose.Types.ObjectId(req.user._id),
+        },
+      },
+      {
+        $lookup: {
+          from: "submissions",
+          localField: "problemId",
+          foreignField: "problemId",
+          as: "comparision",
+          let: { time: "$time" },
+          pipeline: [
+            {
+              $match: {
+                status: "Accepted",
+                problemId: new mongoose.Types.ObjectId(problemId),
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                beats: {
+                  $sum: { $cond: [{ $lte: ["$$time", "$time"] }, 1, 0] },
+                },
+                total: { $sum: 1 },
+                time: { $avg: "$time" },
+              },
+            },
+          ],
+        },
+      },
+    ]).exec();
+
+    console.log(submissions);
+    console.log("Noice!", new mongoose.Types.ObjectId(problemId));
+
+    res.status(200).json({ submissions });
+    // res.status(200).json({ submissions: submissions.map((s) => s.toJSON()) });
     // const problem = await Problem.findById(req.params.problemId);
     // res.status(200).json(problem);
   } catch (error) {
