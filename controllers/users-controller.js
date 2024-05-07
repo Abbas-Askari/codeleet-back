@@ -8,11 +8,12 @@ export async function createUser(req, res, next) {
     await user.save();
 
     jwt.sign(user.toJSON(), process.env.JWT_SECRET, (err, token) => {
-      if (err) return res.status(500).json({ message: err.message });
+      if (err) return res.status(403).json({ message: err.message });
       res.status(200).json({ user: user.toJSON(), token });
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.log(error.message);
+    res.status(400).json({ message: error.message });
   }
 }
 
@@ -32,10 +33,10 @@ export async function login(req, res) {
   if (!user) return res.status(404).json({ message: "User not found" });
 
   if (user.password !== password)
-    return res.status(400).json({ message: "Invalid credentials" });
+    return res.status(400).json({ message: "Invalid Password" });
 
   jwt.sign(user.toJSON(), process.env.JWT_SECRET, (err, token) => {
-    if (err) return res.status(500).json({ message: err.message });
+    if (err) return res.status(403).json({ message: err.message });
     res.status(200).json({ user: user.toJSON(), token });
   });
 }
