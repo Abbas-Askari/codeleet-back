@@ -112,9 +112,11 @@ function testCaseSeperately(solutionCode, functionName, testCase) {
         `,
         {
           setResult: (r) => (result = r),
-          log: (...str) => {
-            if (logs.length >= +process.env.MAX_LOGS) return;
-            logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+          console: {
+            log: (...str) => {
+              if (logs.length >= +process.env.MAX_LOGS) return;
+              logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+            }
           },
           args: testCase,
         },

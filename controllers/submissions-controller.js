@@ -16,9 +16,9 @@ function runCode(code, problem) {
         `
                 ${code}
                 ${problem.solutionFunction.replaceAll(
-                  problem.functionName,
-                  `${problem.functionName}_`
-                )}
+          problem.functionName,
+          `${problem.functionName}_`
+        )}
                 for (let i = 0; i < testCases.length; i++) {
                     const args = testCases[i];
                     clearLogs();
@@ -39,9 +39,11 @@ function runCode(code, problem) {
               testCase: index + 1,
             };
           },
-          log: (...str) => {
-            if (logs.length >= +process.env.MAX_LOGS) return;
-            logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+          console: {
+            log: (...str) => {
+              if (logs.length >= +process.env.MAX_LOGS) return;
+              logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+            }
           },
           clearLogs: () => {
             logs.length = 0;
@@ -90,8 +92,8 @@ export async function createSubmission(req, res) {
       status: limitExceeded
         ? "Time Limit Exceeded"
         : failed
-        ? "Wrong Answer"
-        : "Accepted",
+          ? "Wrong Answer"
+          : "Accepted",
       time,
     });
     await submission.save();
@@ -101,23 +103,23 @@ export async function createSubmission(req, res) {
     const comparision =
       submission.status === "Accepted"
         ? await Submission.aggregate([
-            {
-              $match: {
-                problemId: new mongoose.Types.ObjectId(problemId),
-                status: "Accepted",
-              },
+          {
+            $match: {
+              problemId: new mongoose.Types.ObjectId(problemId),
+              status: "Accepted",
             },
-            {
-              $group: {
-                _id: null,
-                beats: {
-                  $sum: { $cond: [{ $lte: [time, "$time"] }, 1, 0] },
-                },
-                total: { $sum: 1 },
-                time: { $avg: "$time" },
+          },
+          {
+            $group: {
+              _id: null,
+              beats: {
+                $sum: { $cond: [{ $lte: [time, "$time"] }, 1, 0] },
               },
+              total: { $sum: 1 },
+              time: { $avg: "$time" },
             },
-          ]).exec()
+          },
+        ]).exec()
         : null;
 
     console.log({ failed, time, limitExceeded, logs, comparision });
@@ -207,18 +209,20 @@ function testCaseSeperately(problem, code, testCase) {
         `
           ${code}
           ${problem.solutionFunction.replaceAll(
-            problem.functionName,
-            `${problem.functionName}_`
-          )}
+          problem.functionName,
+          `${problem.functionName}_`
+        )}
           const correct = ${problem.functionName}_(...args);
           const user = ${problem.functionName}(...args);
           setResult(user);
           setExpected(correct);
       `,
         {
-          log: (...str) => {
-            if (logs.length >= +process.env.MAX_LOGS) return;
-            logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+          console: {
+            log: (...str) => {
+              if (logs.length >= +process.env.MAX_LOGS) return;
+              logs.push(str.map((obj) => JSON.stringify(obj)).join(" "));
+            }
           },
           setResult: (r) => (result = r),
           setExpected: (e) => (expected = e),
